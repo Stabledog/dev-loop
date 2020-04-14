@@ -10,9 +10,11 @@
 # Usage:
 #   dev-loop.sh [args]
 #    - There must be an active ./taskrc{.md}.
-#    - The taskrc can redefine debug_one(), run_one(), and/or shell_one() to customize behavior within
+#    - The taskrc can redefine debug_one(), run_one(), shell_one(), and/or tail_log() to customize behavior within
 #         each of those loops.  The default versions of debug_one() and run_one() just print error messages,
 #         while the default version of shell_one() runs a bash shell with a taskrc+.bashrc loader in current dir.
+#         The default version of tail_log() prints its tty and then prompts the user for logfile path and then runs
+#         'tail -F [path]'
 #    - Any [args] not eaten by dev-loop.sh are forwarded to the *_one() functions
 #
 org_args="$@"
@@ -31,6 +33,23 @@ function run_one {
 
 function debug_one {
     stub "ERROR: debug_one() should be defined in taskrc" >&2
+}
+
+function tail_log {
+    echo -e "\033[;32mtail_log() default:\033[;0m tty=$(tty)"
+    while true; do
+        read -p "Enter logfile path to watch, or redirect your program's diagnostic output to $(tty): "
+        if [[ $REPLY != "" ]]; then
+            if [[ ! -f $REPLY ]]; then
+                echo "Error: file not found -- $REPLY"
+                continue
+            fi
+        else
+            continue
+        fi
+        echo "tail -F $REPLY:"
+        tail -F $REPLY
+    done
 }
 
 function shell_one {
@@ -143,6 +162,11 @@ if [[ -z $sourceMe ]]; then
         taskrc_v3  # Load ./taskrc.md
         tmux_inner "$@"
     elif [[ -z $DEVLOOP_OUTER ]]; then
+        if [[ -n $TMUX ]]; then
+            read -p "ERROR: you cant start dev-loop inside tmux.  Try 'dev-loop.sh --inner'"
+            echo
+            exit
+        fi
         export DEVLOOP_OUTER=$$
         stub calling tmux_outer
         tmux_outer "$@"
