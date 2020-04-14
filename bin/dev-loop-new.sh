@@ -10,15 +10,19 @@
 # Usage:
 #   dev-loop.sh [args]
 #    - There must be an active ./taskrc{.md}.
-#    - The taskrc can redefine debug_one(), run_one(), and/or shell_one() to customize behavior within
+#    - The taskrc can redefine debug_one(), run_one(), shell_one(), and/or tail_log() to customize behavior within
 #         each of those loops.  The default versions of debug_one() and run_one() just print error messages,
 #         while the default version of shell_one() runs a bash shell with a taskrc+.bashrc loader in current dir.
+#         The default version of tail_log() prints its tty and then prompts the user for logfile path and then runs
+#         'tail -F [path]'
 #    - Any [args] not eaten by dev-loop.sh are forwarded to the *_one() functions
 #
+which realpath >/dev/null || { echo "ERROR: realpath not found">&2; exit 1; }
+scriptName=$(realpath $0)
 org_args="$@"
 
 function stub {
-    return # Comment this out to enable stubs
+    #return # Comment this out to enable stubs
     echo -e "\033[;31mdev-loop.sh:stub(\033[;33m$@\033[;31m)\033[;0m" >&2
 }
 stub "org_args=[$org_args]"
@@ -31,6 +35,23 @@ function run_one {
 
 function debug_one {
     stub "ERROR: debug_one() should be defined in taskrc" >&2
+}
+
+function tail_log {
+    echo -e "\033[;32mtail_log() default:\033[;0m tty=$(tty)"
+    while true; do
+        read -p "Enter logfile path to watch, or redirect your program's diagnostic output to $(tty): "
+        if [[ $REPLY != "" ]]; then
+            if [[ ! -f $REPLY ]]; then
+                echo "Error: file not found -- $REPLY"
+                continue
+            fi
+        else
+            continue
+        fi
+        echo "tail -F $REPLY:"
+        tail -F $REPLY
+    done
 }
 
 function shell_one {
@@ -75,14 +96,25 @@ function debug_loop {
 
 
 function make_inner_shrc {
-    # Creates a temp --rcfile named .devloop_inner_shrc for the inner shell to set up environment
-    cat > ./.devloop_inner_shrc << EOF
-# .devloop_inner_shrc, created by dev-loop.sh $(date)
-#  You should add this to .gitignore
-echo ".devloop_inner_shrc($@) loading:"
+    # Creates temp startup files named .devloop_inner_shrc{.1,.2} for the inner shells to set up environment
+    cat > ./.devloop_inner_shrc.1 << EOF
+# .devloop_inner_shrc.1, created by dev-loop.sh $(date)
+#  You should add this to .gitignore -- '.devloop_inner_shrc*'
+echo ".devloop_inner_shrc.1($@) loading:"
 source ~/.bashrc
-dev-loop.sh --inner $@
-rm .devloop_inner_shrc
+export devloop_window_1=true
+${scriptName} --inner $@
+rm .devloop_inner_shrc.1
+exit
+EOF
+    cat > ./.devloop_inner_shrc.2 << EOF
+# .devloop_inner_shrc.2, created by dev-loop.sh $(date)
+#  You should add this to .gitignore -- '.devloop_inner_shrc*'
+echo ".devloop_inner_shrc.2($@) loading:"
+source ~/.bashrc
+export devloop_window_2=true
+${scriptName} --inner $@
+rm .devloop_inner_shrc.2
 exit
 EOF
 }
@@ -91,8 +123,8 @@ function tmux_outer {
     local tmx_sess=devloop$(tty | tr '/' '_')
     stub tmx_sess=$tmx_sess
     make_inner_shrc "$@"
-    stub tmux new-session -s $tmx_sess '/bin/bash --rcfile ./.devloop_inner_shrc'
-    tmux new-session -s $tmx_sess '/bin/bash --rcfile ./.devloop_inner_shrc'
+    stub tmux new-session -s $tmx_sess '/bin/bash --rcfile ./.devloop_inner_shrc.1'
+    tmux new-session -s $tmx_sess '/bin/bash --rcfile ./.devloop_inner_shrc.1'
     stub $(tmux ls)
     stub tmux result=$?
 }
@@ -143,6 +175,11 @@ if [[ -z $sourceMe ]]; then
         taskrc_v3  # Load ./taskrc.md
         tmux_inner "$@"
     elif [[ -z $DEVLOOP_OUTER ]]; then
+        if [[ -n $TMUX ]]; then
+            read -p "ERROR: you cant start dev-loop inside tmux.  Try 'dev-loop.sh --inner'"
+            echo
+            exit
+        fi
         export DEVLOOP_OUTER=$$
         stub calling tmux_outer
         tmux_outer "$@"
