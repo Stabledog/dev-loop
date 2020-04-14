@@ -131,18 +131,23 @@ function tmux_inner {
 
 
 if [[ -z $sourceMe ]]; then
+    if ! (shopt -s extglob; ls taskrc?(.md) &>/dev/null ); then
+        read -p "Error: No .taskrc{.md} present in $PWD. Hit enter to quit."
+        exit
+    fi
     if [[ $1 == "--inner" ]]; then
         shift
 
         # AFTER we have defined default run/debug/start_one() functions, we'll give the local
         # project a shot at redefining them:
-        if ! (shopt -s extglob; ls taskrc?(.md) &>/dev/null ); then
-            stub "No .taskrc{.md} present"
-            exit
-        fi
         taskrc_v3  # Load ./taskrc.md
         tmux_inner "$@"
     elif [[ -z $DEVLOOP_OUTER ]]; then
+        if [[ -n $TMUX ]]; then
+            read -p "ERROR: you cant start dev-loop inside tmux.  Try 'dev-loop.sh --inner'"
+            echo
+            exit
+        fi
         export DEVLOOP_OUTER=$$
         stub calling tmux_outer
         tmux_outer "$@"
