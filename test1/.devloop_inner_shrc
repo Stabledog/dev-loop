@@ -1,0 +1,7 @@
+# .devloop_inner_shrc, created by dev-loop.sh Tue Apr 14 07:46:48 EDT 2020
+#  You should add this to .gitignore
+echo ".devloop_inner_shrc() loading:"
+source ~/.bashrc
+dev-loop.sh --inner 
+rm .devloop_inner_shrc
+exit
