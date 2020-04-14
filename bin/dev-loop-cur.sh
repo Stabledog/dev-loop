@@ -17,10 +17,12 @@
 #         'tail -F [path]'
 #    - Any [args] not eaten by dev-loop.sh are forwarded to the *_one() functions
 #
+which realpath >/dev/null || { echo "ERROR: realpath not found">&2; exit 1; }
+scriptName=$(realpath $0)
 org_args="$@"
 
 function stub {
-    return # Comment this out to enable stubs
+    #return # Comment this out to enable stubs
     echo -e "\033[;31mdev-loop.sh:stub(\033[;33m$@\033[;31m)\033[;0m" >&2
 }
 stub "org_args=[$org_args]"
@@ -94,14 +96,25 @@ function debug_loop {
 
 
 function make_inner_shrc {
-    # Creates a temp --rcfile named .devloop_inner_shrc for the inner shell to set up environment
-    cat > ./.devloop_inner_shrc << EOF
-# .devloop_inner_shrc, created by dev-loop.sh $(date)
-#  You should add this to .gitignore
-echo ".devloop_inner_shrc($@) loading:"
+    # Creates temp startup files named .devloop_inner_shrc{.1,.2} for the inner shells to set up environment
+    cat > ./.devloop_inner_shrc.1 << EOF
+# .devloop_inner_shrc.1, created by dev-loop.sh $(date)
+#  You should add this to .gitignore -- '.devloop_inner_shrc*'
+echo ".devloop_inner_shrc.1($@) loading:"
 source ~/.bashrc
-dev-loop.sh --inner $@
-rm .devloop_inner_shrc
+export devloop_window_1=true
+${scriptName} --inner $@
+rm .devloop_inner_shrc.1
+exit
+EOF
+    cat > ./.devloop_inner_shrc.2 << EOF
+# .devloop_inner_shrc.2, created by dev-loop.sh $(date)
+#  You should add this to .gitignore -- '.devloop_inner_shrc*'
+echo ".devloop_inner_shrc.2($@) loading:"
+source ~/.bashrc
+export devloop_window_2=true
+${scriptName} --inner $@
+rm .devloop_inner_shrc.2
 exit
 EOF
 }
@@ -110,8 +123,8 @@ function tmux_outer {
     local tmx_sess=devloop$(tty | tr '/' '_')
     stub tmx_sess=$tmx_sess
     make_inner_shrc "$@"
-    stub tmux new-session -s $tmx_sess '/bin/bash --rcfile ./.devloop_inner_shrc'
-    tmux new-session -s $tmx_sess '/bin/bash --rcfile ./.devloop_inner_shrc'
+    stub tmux new-session -s $tmx_sess '/bin/bash --rcfile ./.devloop_inner_shrc.1'
+    tmux new-session -s $tmx_sess '/bin/bash --rcfile ./.devloop_inner_shrc.1'
     stub $(tmux ls)
     stub tmux result=$?
 }
