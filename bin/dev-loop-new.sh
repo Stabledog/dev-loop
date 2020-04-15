@@ -5,7 +5,7 @@
 # This runs in two modes: "tmux_outer" vs. "tmux_inner"
 #
 # The outer instance launches a unique tmux session, and starts a tmux_inner instance within a new window
-# in that session.  The inner instance runs the UI loop, launches debug/run/shell as needed by the user.
+# in that session.  The inner instance runs either the debug_run UI loop or the watch_log loop (for left vs right panes respectively).
 #
 # Usage:
 #   dev-loop.sh [args]
