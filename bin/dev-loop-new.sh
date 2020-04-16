@@ -29,15 +29,18 @@ function stubcolor {
     echo -e "\033[;${color}mdev-loop.sh:${prefix}(\033[;33m$@\033[;${color}m)\033[;0m"
 }
 
+stub_enable=false  # Change to true to enable stubs
+
 function stub {
-    #return # Comment this out to enable stub()
+    # No-stop stub message:
+    $stub_enable || return
     stubcolor 31 stub "$@" | tee $(cat .diagloop-tty) >&2
     true
 }
 
 function stub_p {
-    #return # Comment this out to enable stub_p()
-    #message with pause
+    # stub message with pause:
+    $stub_enable || return
     stubcolor 35 stub_p "$@" | tee $(cat .diagloop-tty) >&2
     read -p "{{Enter to continue from stub_p}}"
     true
