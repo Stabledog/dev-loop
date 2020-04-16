@@ -23,9 +23,18 @@ scriptName=$(realpath $0)
 org_args="$@"
 
 function stub {
-    #return # Comment this out to enable stubs
+    #return # Comment this out to enable stub()
     echo -e "\033[;31mdev-loop.sh:stub(\033[;33m$@\033[;31m)\033[;0m" >&2
+    true
 }
+function stub_p {
+    #return # Comment this out to enable stub_p()
+    #message with pause
+    echo -e "\033[;35mdev-loop.sh:stub_p(\033[;33m$@\033[;35m)\033[;0m" >&2
+    read -p "{{Enter to continue from stub_p}}"
+    true
+}
+
 stub "org_args=[$org_args]"
 
 source ~/.bashrc
@@ -119,7 +128,9 @@ echo ".devloop_inner_shrc.2($@) loading:"
 source ~/.bashrc
 export devloop_window_2=true
 sourceMe=1 source ${scriptName}
-inner_diagloop "$@"
+alias diagloop=inner_diagloop
+#trap 'echo "Ctrl+C inner"' SIGINT
+( inner_diagloop "$@" )
 rm .devloop_inner_shrc.2
 exit
 EOF
@@ -135,9 +146,53 @@ function tmux_outer {
     stub tmux result=$?
 }
 
+function cfg_cmd {
+    # Capture new command to .diagloop-cmd and exit 0 for success:
+    (
+        stub "2:cmd=[$(cat .diagloop-cmd)]"
+        trap 'echo trap1; exit 1;' SIGINT
+        stty sane
+        if read -ep "$(tty):
+Enter command for diag monitoring:
+        -> " -i "$(cat .diagloop-cmd)"; then
+            echo "$REPLY" > .diagloop-cmd
+            exit 0
+        fi
+        exit 1
+    )
+}
+
 function inner_diagloop {
+    if [[ ! -f .diagloop-cmd ]]; then
+        # If there's no .diagloop-cmd, create a default and prepare the user:
+        'tail -F ./quiklog-9.log' > .diagloop-cmd
+        cfg_cmd
+    else
+        echo ".diagloop-cmd found: \"($(cat .diagloop-cmd))\""
+    fi
+
     while true; do
-        read -p "You're in the diag loop now."
+        (  # Run the diag command by sourcing it in a trapped subshell:
+            trap 'echo "trap 2"; stty sane; exit 1' SIGINT
+            source .diagloop-cmd
+        )
+        stty sane
+        read -n 1 -p "[A]gain,[C]onfigure, or [Q]uit: "
+        case $REPLY in
+            [aA])
+                echo
+                continue
+                ;;
+            [cC])
+                cfg_cmd && echo
+                ;;
+            [qQ])
+                return
+                ;;
+            *)
+                echo
+                ;;
+        esac
     done
 }
 
