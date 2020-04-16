@@ -153,7 +153,8 @@ function cfg_cmd {
         trap 'echo trap1; exit 1;' SIGINT
         stty sane
         if read -ep "$(tty):
-Enter command for diag monitoring:
+Enter command for diag monitoring.  This will be saved as .diagloop-cmd for
+later use:
         -> " -i "$(cat .diagloop-cmd)"; then
             echo "$REPLY" > .diagloop-cmd
             exit 0
@@ -165,7 +166,8 @@ Enter command for diag monitoring:
 function inner_diagloop {
     if [[ ! -f .diagloop-cmd ]]; then
         # If there's no .diagloop-cmd, create a default and prepare the user:
-        'tail -F ./quiklog-9.log' > .diagloop-cmd
+        tty > .diagloop-tty
+        echo "echo \"Send diag stream to $(tty):\" ; sleep 999999; " > .diagloop-cmd
         cfg_cmd
     else
         echo ".diagloop-cmd found: \"($(cat .diagloop-cmd))\""
@@ -177,7 +179,9 @@ function inner_diagloop {
             source .diagloop-cmd
         )
         stty sane
-        read -n 1 -p "[A]gain,[C]onfigure, or [Q]uit: "
+        read -n 1 -p "
+   >>> Diag loop options :
+   [A]gain,[C]onfigure, Ctrl+C, or [Q]uit: "
         case $REPLY in
             [aA])
                 echo
@@ -205,7 +209,9 @@ function inner_devloop {
         again_main=false
         echo
         echo "-----------------"
-        read -n 1 -p "[D]ebug, [R]un, [S]hell, or [Q]uit?"
+        read -n 1 -p "
+    >>> Main loop options:
+    [D]ebug, [R]un, [S]hell, or [Q]uit?"
         case $REPLY in
             [dD])
                 echo
