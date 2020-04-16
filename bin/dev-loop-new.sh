@@ -2,10 +2,11 @@
 #vim: filetype=sh :
 #
 # dev-loop.sh:
-# This runs in two modes: "tmux_outer" vs. "tmux_inner"
+# This runs in two modes: "outer" vs. "inner"
 #
-# The outer instance launches a unique tmux session, and starts a tmux_inner instance within a new window
-# in that session.  The inner instance runs either the debug_run UI loop or the watch_log loop (for left vs right panes respectively).
+# The outer instance launches a unique tmux session, and starts an inner instance with 2 new windows
+# in that session.  The inner instance runs a dev loop of (debug/run/shell) in the left pane, and a diag watcher
+#  (e.g. tail_log()) in the right pane.
 #
 # Usage:
 #   dev-loop.sh [args]
@@ -75,6 +76,7 @@ function run_loop {
         run_one "$@"
         read -n 1 -p "[A]gain or [Q]uit?"
         if [[ $REPLY =~ [aA] ]]; then
+            echo
             again=true
         fi
     done
@@ -89,6 +91,7 @@ function debug_loop {
         debug_one "$@"
         read -n 1 -p "[A]gain or [Q]uit?"
         if [[ $REPLY =~ [aA] ]]; then
+            echo
             again=true
         fi
     done
@@ -103,8 +106,10 @@ function make_inner_shrc {
 echo ".devloop_inner_shrc.1($@) loading:"
 source ~/.bashrc
 export devloop_window_1=true
+tmux split-window -h 'bash --rcfile .devloop_inner_shrc.2'
 ${scriptName} --inner $@
 rm .devloop_inner_shrc.1
+tmux kill-session
 exit
 EOF
     cat > ./.devloop_inner_shrc.2 << EOF
@@ -113,7 +118,8 @@ EOF
 echo ".devloop_inner_shrc.2($@) loading:"
 source ~/.bashrc
 export devloop_window_2=true
-${scriptName} --inner $@
+sourceMe=1 source ${scriptName}
+inner_diagloop "$@"
 rm .devloop_inner_shrc.2
 exit
 EOF
@@ -129,9 +135,15 @@ function tmux_outer {
     stub tmux result=$?
 }
 
-function tmux_inner {
-    # This function runs the main inner loop
-    stub "tmux_inner($@): pwd=$PWD..."
+function inner_diagloop {
+    while true; do
+        read -p "You're in the diag loop now."
+    done
+}
+
+function inner_devloop {
+    # This function runs the left-pane run/debug/shell loop
+    stub "inner_devloop($@): pwd=$PWD..."
 
     local again_main=true
     while $again_main; do
@@ -141,10 +153,12 @@ function tmux_inner {
         read -n 1 -p "[D]ebug, [R]un, [S]hell, or [Q]uit?"
         case $REPLY in
             [dD])
+                echo
                 debug_loop "$@"
                 again_main=true
                 ;;
             [rR])
+                echo
                 run_loop "$@"
                 again_main=true
                 ;;
@@ -153,8 +167,13 @@ function tmux_inner {
                 echo "exit"
                 exit
                 ;;
-            *)
+            [sS])
                 shell_one "$@"
+                again_main=true
+                ;;
+
+            *)
+                echo
                 again_main=true
                 ;;
         esac
@@ -173,7 +192,7 @@ if [[ -z $sourceMe ]]; then
         # AFTER we have defined default run/debug/start_one() functions, we'll give the local
         # project a shot at redefining them:
         taskrc_v3  # Load ./taskrc.md
-        tmux_inner "$@"
+        inner_devloop "$@"
     elif [[ -z $DEVLOOP_OUTER ]]; then
         if [[ -n $TMUX ]]; then
             read -p "ERROR: you cant start dev-loop inside tmux.  Try 'dev-loop.sh --inner'"
