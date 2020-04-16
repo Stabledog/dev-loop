@@ -3,11 +3,11 @@
 ```bash
 
 function run_one {
-    echo "this is run_one in test1/"
+    stub "this is run_one in test1/taskrc.md"
 }
 
 function debug_one {
-    echo "this is debug_one in test1/"
+    stub "this is debug_one in test1/taskrc.md"
 }
 
 

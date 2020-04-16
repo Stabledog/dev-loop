@@ -22,15 +22,23 @@ which realpath >/dev/null || { echo "ERROR: realpath not found">&2; exit 1; }
 scriptName=$(realpath $0)
 org_args="$@"
 
+function stubcolor {
+    local color=$1
+    local prefix=$2
+    shift
+    echo -e "\033[;${color}mdev-loop.sh:${prefix}(\033[;33m$@\033[;${color}m)\033[;0m"
+}
+
 function stub {
     #return # Comment this out to enable stub()
-    echo -e "\033[;31mdev-loop.sh:stub(\033[;33m$@\033[;31m)\033[;0m" >&2
+    stubcolor 31 stub "$@" | tee $(cat .diagloop-tty) >&2
     true
 }
+
 function stub_p {
     #return # Comment this out to enable stub_p()
     #message with pause
-    echo -e "\033[;35mdev-loop.sh:stub_p(\033[;33m$@\033[;35m)\033[;0m" >&2
+    stubcolor 35 stub_p "$@" | tee $(cat .diagloop-tty) >&2
     read -p "{{Enter to continue from stub_p}}"
     true
 }
@@ -129,6 +137,7 @@ source ~/.bashrc
 export devloop_window_2=true
 sourceMe=1 source ${scriptName}
 alias diagloop=inner_diagloop
+tty>.diagloop-tty
 #trap 'echo "Ctrl+C inner"' SIGINT
 ( inner_diagloop "$@" )
 rm .devloop_inner_shrc.2
@@ -167,7 +176,7 @@ function inner_diagloop {
     if [[ ! -f .diagloop-cmd ]]; then
         # If there's no .diagloop-cmd, create a default and prepare the user:
         tty > .diagloop-tty
-        echo "echo \"Send diag stream to $(tty):\" ; sleep 999999; " > .diagloop-cmd
+        echo "echo \"Send diag stream to $(cat .diagloop-tty):\" ; sleep 999999; " > .diagloop-cmd
         cfg_cmd
     else
         echo ".diagloop-cmd found: \"($(cat .diagloop-cmd))\""
