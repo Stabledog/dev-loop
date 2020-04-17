@@ -1,0 +1,9 @@
+# vim: filetype=sh :
+
+devloop=$(PATH=~/projects/dev-loop/bin:/c/Projects/dev-loop/bin:~/bin:/usr/bin:/bin which dev-loop-cur.sh)
+
+function dev-loop {
+    local dlv_src="dev-loop/bin/dev-loop.taskrc"
+    $devloop "$@"
+}
+
