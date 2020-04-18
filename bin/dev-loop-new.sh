@@ -141,7 +141,8 @@ export devloop_window_2=true
 sourceMe=1 source ${scriptName}
 alias diagloop=inner_diagloop
 tty>.diagloop-tty
-#trap 'echo "Ctrl+C inner"' SIGINT
+tmux select-pane -L
+trap 'echo "Ctrl+C inner"' SIGINT
 ( inner_diagloop "$@" )
 rm .devloop_inner_shrc.2
 exit
