@@ -123,33 +123,35 @@ EOF
 }
 
 function prompt_again_or_quit {
-    read -n 1 -p " >> $(menucolor 32 33 '[A]gain' $1 'or [Q]uit?')"
+    while true; do
+        read -n 1 -p " >> $(menucolor 32 33 '[A]gain' $1 'or [Q]uit?')"
+        if [[ $REPLY =~ [Qq] ]]; then
+            false
+            return
+        elif [[ $REPLY =~ [Aa] ]]; then
+            echo
+            return
+        fi
+        echo
+    done
 }
 
 function run_loop {
     # runs a run_one() function repeatedly with restart prompt
-    local again=true
-    while $again; do
-        again=false
+    while true; do
         run_one "$@"
-        prompt_again_or_quit "(run)"
-        if [[ $REPLY =~ [aA] ]]; then
-            echo
-            again=true
+        if ! prompt_again_or_quit "(run)"; then
+            return
         fi
     done
 }
 
 function debug_loop {
     # runs a debug_one() function repeatedly with restart prompt
-    local again=true
     while $again; do
-        again=false
         debug_one "$@"
-        prompt_again_or_quit "(debug)"
-        if [[ $REPLY =~ [aA] ]]; then
-            echo
-            again=true
+        if ! prompt_again_or_quit "(debug)"; then
+            return
         fi
     done
 }
