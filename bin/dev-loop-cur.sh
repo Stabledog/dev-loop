@@ -22,11 +22,28 @@ which realpath >/dev/null || { echo "ERROR: realpath not found">&2; exit 1; }
 scriptName=$(realpath $0)
 org_args="$@"
 
+function textcolor {
+    # Wrap text with color on/off:
+    local color=$1
+    shift
+    echo -ne "\033[;${color}m$@\033[;0m"
+}
+
 function stubcolor {
+    # Format a stub with color:
     local color=$1
     local prefix=$2
+    shift 2
+    textcolor $color "dev-loop.sh:${prefix} ("
+    textcolor 33 $@
+    textcolor $color ")"
+    echo
+}
+
+function menucolor {
+    local color=$1
     shift
-    echo -e "\033[;${color}mdev-loop.sh:${prefix}(\033[;33m$@\033[;${color}m)\033[;0m"
+    local item="$@"
 }
 
 stub_enable=false  # Change to true to enable stubs
