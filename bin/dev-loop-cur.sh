@@ -114,7 +114,9 @@ EOF
     stub "shell_one default exit"
 }
 
-
+function prompt_again_or_quit {
+    read -n 1 -p " >> $(menucolor 32 33 '[A]gain' $1 'or [Q]uit?')"
+}
 
 function run_loop {
     # runs a run_one() function repeatedly with restart prompt
@@ -122,14 +124,13 @@ function run_loop {
     while $again; do
         again=false
         run_one "$@"
-        read -n 1 -p "[A]gain or [Q]uit?"
+        prompt_again_or_quit "(run)"
         if [[ $REPLY =~ [aA] ]]; then
             echo
             again=true
         fi
     done
 }
-
 
 function debug_loop {
     # runs a debug_one() function repeatedly with restart prompt
@@ -137,14 +138,13 @@ function debug_loop {
     while $again; do
         again=false
         debug_one "$@"
-        read -n 1 -p "[A]gain or [Q]uit?"
+        prompt_again_or_quit "(debug)"
         if [[ $REPLY =~ [aA] ]]; then
             echo
             again=true
         fi
     done
 }
-
 
 function make_inner_shrc {
     # Creates temp startup files named .devloop_inner_shrc{.1,.2} for the inner shells to set up environment
@@ -219,8 +219,7 @@ function inner_diagloop {
         )
         stty sane
         read -n 1 -p "
-   >>> Diag loop options :
-   [A]gain,[C]onfigure, Ctrl+C, or [Q]uit: "
+$(menucolor 32 33 '[A]gain,[C]onfigure, [Ctrl+C], or [Q]uit:')"
         case $REPLY in
             [aA])
                 echo
@@ -247,10 +246,8 @@ function inner_devloop {
     while $again_main; do
         again_main=false
         echo
-        echo "-----------------"
         read -n 1 -p "
-    >>> Main loop options:
-    [D]ebug, [R]un, [S]hell, or [Q]uit?"
+$(menucolor 32 33 '[D]ebug, [R]un, [S]hell, or [Q]uit?')"
         case $REPLY in
             [dD])
                 echo
