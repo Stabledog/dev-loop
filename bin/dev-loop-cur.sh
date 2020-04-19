@@ -139,12 +139,11 @@ echo ".devloop_inner_shrc.2($@) loading:"
 source ~/.bashrc
 export devloop_window_2=true
 sourceMe=1 source ${scriptName}
-alias diagloop=inner_diagloop
 tty>.diagloop-tty
 tmux select-pane -L
 trap 'echo "Ctrl+C inner"' SIGINT
 ( inner_diagloop "$@" )
-rm .devloop_inner_shrc.2
+rm .devloop_inner_shrc.2 .diagloop-cmd .diagloop-tty
 exit
 EOF
 }
@@ -179,7 +178,6 @@ later use:
 function inner_diagloop {
     if [[ ! -f .diagloop-cmd ]]; then
         # If there's no .diagloop-cmd, create a default and prepare the user:
-        tty > .diagloop-tty
         echo "echo \"Send diag stream to $(cat .diagloop-tty):\" ; sleep 999999; " > .diagloop-cmd
         cfg_cmd
     else
