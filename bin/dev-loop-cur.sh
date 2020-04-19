@@ -19,8 +19,8 @@
 #    - Any [args] not eaten by dev-loop.sh are forwarded to the *_one() functions
 #
 which realpath >/dev/null || { echo "ERROR: realpath not found">&2; exit 1; }
-scriptName=$(realpath $0)
 org_args="$@"
+scriptName=dev-loop.sh
 
 function textcolor {
     # Wrap text with color on/off:
@@ -41,9 +41,20 @@ function stubcolor {
 }
 
 function menucolor {
-    local color=$1
-    shift
-    local item="$@"
+    # Produces colored menus where [i]ndicators in brackets are highlighted
+    # relative to basecolor.
+    # See dev-loop/test2/menucolor_test.sh
+    local identcolor=$1  # The color of the [ident] indicators
+    local basecolor=$2  # The color of everything else
+    shift 2
+    while read item_ind item_text; do
+        [[ -z $item_ind ]] && continue
+        textcolor $identcolor "[$item_ind]" 
+        textcolor $basecolor "$item_text"
+        echo -n " "
+    done < <( 
+        echo "$@" | tr '[]' '\n '
+    )
 }
 
 stub_enable=false  # Change to true to enable stubs
@@ -271,6 +282,7 @@ function inner_devloop {
 
 
 if [[ -z $sourceMe ]]; then
+    scriptName=$(realpath $0)
     if ! (shopt -s extglob; ls taskrc?(.md) &>/dev/null ); then
         read -p "Error: No .taskrc{.md} present in $PWD. Hit enter to quit."
         exit
