@@ -29,6 +29,14 @@ function textcolor {
     echo -ne "\033[;${color}m$@\033[;0m"
 }
 
+function colorstream {
+    # Wrap stdin with color on/off:
+    local color=$1
+    echo -ne "\033[;${color}m"
+    cat
+    echo -ne "\033[;0m"
+}
+
 function stubcolor {
     # Format a stub with color:
     local color=$1
