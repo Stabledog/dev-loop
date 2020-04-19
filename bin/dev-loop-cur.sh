@@ -87,11 +87,11 @@ stub "org_args=[$org_args]"
 source ~/.bashrc
 
 function run_one {
-    stub "ERROR: run_one() should be defined in taskrc" >&2
+    colorstream 31 <<< "ERROR: run_one() is not defined in taskrc" >&2
 }
 
 function debug_one {
-    stub "ERROR: debug_one() should be defined in taskrc" >&2
+    colorstream 31 <<< "ERROR: debug_one() is not defined in taskrc" >&2
 }
 
 function tail_log {
@@ -113,6 +113,7 @@ function tail_log {
 
 function shell_one {
     stub "shell_one() default:"
+    echo; colorstream 33 <<< "shell_one() is not defined in taskrc, this is default:"; echo
     /bin/bash --login --rcfile  <(cat << EOF
 source ~/.bashrc
 taskrc_v3
