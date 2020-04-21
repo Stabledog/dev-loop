@@ -57,10 +57,10 @@ function menucolor {
     shift 2
     while read item_ind item_text; do
         [[ -z $item_ind ]] && continue
-        textcolor $identcolor "[$item_ind]" 
+        textcolor $identcolor "[$item_ind]"
         textcolor $basecolor "$item_text"
         echo -n " "
-    done < <( 
+    done < <(
         echo "$@" | tr '[]' '\n '
     )
 }
@@ -288,16 +288,56 @@ $(menucolor 32 33 '[D]ebug, [R]un, [S]hell, or [Q]uit?')"
     done
 }
 
+function do_codegen {
+    # Generate code stubs for taskrc inclusion.  We support certain taskrc-definable
+    # functions (e.g. run_one(), debug_one, shell_one()), and this function generates
+    # boilerplate for any functions that aren't already defined in taskrc.
+    # If no taskrc exists, it generates the full set.
+
+    function gen-run_one {
+		cat <<- EOF
+		function run_one {
+			#Help
+		    echo "This is run_one()"
+		}
+		EOF
+    }
+
+    function gen-debug_one {
+		cat <<- EOF
+		function debug_one {
+			#Help
+		    echo "This is debug_one()"
+		}
+		EOF
+    }
+
+	function gen-shell_one {
+		cat <<- EOF
+		function shell_one {
+			#Help
+		    echo "This is shell_one()"
+		}
+		EOF
+	}
+
+	gen-run_one
+	gen-debug_one
+	gen-shell_one
+}
+
 
 if [[ -z $sourceMe ]]; then
     scriptName=$(realpath $0)
-    if ! (shopt -s extglob; ls taskrc?(.md) &>/dev/null ); then
-        read -p "Error: No .taskrc{.md} present in $PWD. Hit enter to quit."
-        exit
-    fi
-    if [[ $1 == "--inner" ]]; then
+    if [[ $1 == "--codegen" ]]; then
         shift
-
+        do_codegen "$@"
+    elif [[ $1 == "--inner" ]]; then
+        shift
+		if ! (shopt -s extglob; ls taskrc?(.md) &>/dev/null ); then
+			read -p "Error: No .taskrc{.md} present in $PWD. Hit enter to quit."
+			exit
+		fi
         # AFTER we have defined default run/debug/start_one() functions, we'll give the local
         # project a shot at redefining them:
         taskrc_v3  # Load ./taskrc.md
