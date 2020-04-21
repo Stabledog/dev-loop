@@ -19,14 +19,50 @@
 #    - Any [args] not eaten by dev-loop.sh are forwarded to the *_one() functions
 #
 which realpath >/dev/null || { echo "ERROR: realpath not found">&2; exit 1; }
-scriptName=$(realpath $0)
 org_args="$@"
+scriptName=dev-loop.sh
+
+function textcolor {
+    # Wrap text with color on/off:
+    local color=$1
+    shift
+    echo -ne "\033[;${color}m$@\033[;0m"
+}
+
+function colorstream {
+    # Wrap stdin with color on/off:
+    local color=$1
+    echo -ne "\033[;${color}m"
+    cat
+    echo -ne "\033[;0m"
+}
 
 function stubcolor {
+    # Format a stub with color:
     local color=$1
     local prefix=$2
-    shift
-    echo -e "\033[;${color}mdev-loop.sh:${prefix}(\033[;33m$@\033[;${color}m)\033[;0m"
+    shift 2
+    textcolor $color "dev-loop.sh:${prefix} ("
+    textcolor 33 $@
+    textcolor $color ")"
+    echo
+}
+
+function menucolor {
+    # Produces colored menus where [i]ndicators in brackets are highlighted
+    # relative to basecolor.
+    # See dev-loop/test2/menucolor_test.sh
+    local identcolor=$1  # The color of the [ident] indicators
+    local basecolor=$2  # The color of everything else
+    shift 2
+    while read item_ind item_text; do
+        [[ -z $item_ind ]] && continue
+        textcolor $identcolor "[$item_ind]" 
+        textcolor $basecolor "$item_text"
+        echo -n " "
+    done < <( 
+        echo "$@" | tr '[]' '\n '
+    )
 }
 
 stub_enable=false  # Change to true to enable stubs
@@ -51,11 +87,11 @@ stub "org_args=[$org_args]"
 source ~/.bashrc
 
 function run_one {
-    stub "ERROR: run_one() should be defined in taskrc" >&2
+    colorstream 31 <<< "ERROR: run_one() is not defined in taskrc" >&2
 }
 
 function debug_one {
-    stub "ERROR: debug_one() should be defined in taskrc" >&2
+    colorstream 31 <<< "ERROR: debug_one() is not defined in taskrc" >&2
 }
 
 function tail_log {
@@ -77,6 +113,7 @@ function tail_log {
 
 function shell_one {
     stub "shell_one() default:"
+    echo; colorstream 33 <<< "shell_one() is not defined in taskrc, this is default:"; echo
     /bin/bash --login --rcfile  <(cat << EOF
 source ~/.bashrc
 taskrc_v3
@@ -86,37 +123,39 @@ EOF
     stub "shell_one default exit"
 }
 
-
+function prompt_again_or_quit {
+    while true; do
+        read -n 1 -p " >> $(menucolor 32 33 '[A]gain' $1 'or [Q]uit?')"
+        if [[ $REPLY =~ [Qq] ]]; then
+            false
+            return
+        elif [[ $REPLY =~ [Aa] ]]; then
+            echo
+            return
+        fi
+        echo
+    done
+}
 
 function run_loop {
     # runs a run_one() function repeatedly with restart prompt
-    local again=true
-    while $again; do
-        again=false
+    while true; do
         run_one "$@"
-        read -n 1 -p "[A]gain or [Q]uit?"
-        if [[ $REPLY =~ [aA] ]]; then
-            echo
-            again=true
+        if ! prompt_again_or_quit "(run)"; then
+            return
         fi
     done
 }
-
 
 function debug_loop {
     # runs a debug_one() function repeatedly with restart prompt
-    local again=true
     while $again; do
-        again=false
         debug_one "$@"
-        read -n 1 -p "[A]gain or [Q]uit?"
-        if [[ $REPLY =~ [aA] ]]; then
-            echo
-            again=true
+        if ! prompt_again_or_quit "(debug)"; then
+            return
         fi
     done
 }
-
 
 function make_inner_shrc {
     # Creates temp startup files named .devloop_inner_shrc{.1,.2} for the inner shells to set up environment
@@ -139,12 +178,11 @@ echo ".devloop_inner_shrc.2($@) loading:"
 source ~/.bashrc
 export devloop_window_2=true
 sourceMe=1 source ${scriptName}
-alias diagloop=inner_diagloop
 tty>.diagloop-tty
 tmux select-pane -L
 trap 'echo "Ctrl+C inner"' SIGINT
 ( inner_diagloop "$@" )
-rm .devloop_inner_shrc.2
+rm .devloop_inner_shrc.2 .diagloop-cmd .diagloop-tty
 exit
 EOF
 }
@@ -179,7 +217,6 @@ later use:
 function inner_diagloop {
     if [[ ! -f .diagloop-cmd ]]; then
         # If there's no .diagloop-cmd, create a default and prepare the user:
-        tty > .diagloop-tty
         echo "echo \"Send diag stream to $(cat .diagloop-tty):\" ; sleep 999999; " > .diagloop-cmd
         cfg_cmd
     else
@@ -193,8 +230,7 @@ function inner_diagloop {
         )
         stty sane
         read -n 1 -p "
-   >>> Diag loop options :
-   [A]gain,[C]onfigure, Ctrl+C, or [Q]uit: "
+$(menucolor 32 33 '[A]gain,[C]onfigure, [Ctrl+C], or [Q]uit:')"
         case $REPLY in
             [aA])
                 echo
@@ -221,10 +257,8 @@ function inner_devloop {
     while $again_main; do
         again_main=false
         echo
-        echo "-----------------"
         read -n 1 -p "
-    >>> Main loop options:
-    [D]ebug, [R]un, [S]hell, or [Q]uit?"
+$(menucolor 32 33 '[D]ebug, [R]un, [S]hell, or [Q]uit?')"
         case $REPLY in
             [dD])
                 echo
@@ -256,6 +290,7 @@ function inner_devloop {
 
 
 if [[ -z $sourceMe ]]; then
+    scriptName=$(realpath $0)
     if ! (shopt -s extglob; ls taskrc?(.md) &>/dev/null ); then
         read -p "Error: No .taskrc{.md} present in $PWD. Hit enter to quit."
         exit
