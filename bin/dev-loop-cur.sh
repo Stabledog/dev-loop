@@ -94,6 +94,14 @@ function debug_one {
     colorstream 31 <<< "ERROR: debug_one() is not defined in taskrc" >&2
 }
 
+function edit_one {
+    if [[ -z $EDITOR ]]; then
+        vi=$(PATH=/usr/local/bin:/usr/bin/:/bin which vi)
+        export EDITOR=vi
+    fi
+    $EDITOR "$@"
+}
+
 function tail_log {
     echo -e "\033[;32mtail_log() default:\033[;0m tty=$(tty)"
     while true; do
@@ -258,7 +266,7 @@ function inner_devloop {
         again_main=false
         echo
         read -n 1 -p "
-$(menucolor 32 33 '[D]ebug, [R]un, [S]hell, or [Q]uit?')"
+$(menucolor 32 33 '[D]ebug, [R]un, [E]dit, [S]hell, or [Q]uit?')"
         case $REPLY in
             [dD])
                 echo
@@ -268,6 +276,11 @@ $(menucolor 32 33 '[D]ebug, [R]un, [S]hell, or [Q]uit?')"
             [rR])
                 echo
                 run_loop "$@"
+                again_main=true
+                ;;
+            [eE])
+                echo
+                edit_one "$@"
                 again_main=true
                 ;;
             [qQ])

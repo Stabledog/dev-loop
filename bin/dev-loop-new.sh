@@ -99,7 +99,7 @@ function edit_one {
         vi=$(PATH=/usr/local/bin:/usr/bin/:/bin which vi)
         export EDITOR=vi
     fi
-    $vi "$@"
+    $EDITOR "$@"
 }
 
 function tail_log {
