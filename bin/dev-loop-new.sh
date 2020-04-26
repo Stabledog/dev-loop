@@ -122,11 +122,11 @@ function tail_log {
 function shell_one {
     stub "shell_one() default:"
     echo; colorstream 33 <<< "shell_one() is not defined in taskrc, this is default:"; echo
-    /bin/bash --login --rcfile  <(cat << EOF
-source ~/.bashrc
-taskrc_v3
-echo "Default shell_one() + taskrc + .bashrc loaded OK"
-EOF
+    /bin/bash --login --rcfile  <(cat <<- EOF
+		source ~/.bashrc
+		taskrc_v3
+		echo "Default shell_one() + taskrc + .bashrc loaded OK"
+		EOF
     )
     stub "shell_one default exit"
 }
@@ -167,32 +167,32 @@ function debug_loop {
 
 function make_inner_shrc {
     # Creates temp startup files named .devloop_inner_shrc{.1,.2} for the inner shells to set up environment
-    cat > ./.devloop_inner_shrc.1 << EOF
-# .devloop_inner_shrc.1, created by dev-loop.sh $(date)
-#  You should add this to .gitignore -- '.devloop_inner_shrc*'
-echo ".devloop_inner_shrc.1($@) loading:"
-source ~/.bashrc
-export devloop_window_1=true
-tmux split-window -h 'bash --rcfile .devloop_inner_shrc.2'
-${scriptName} --inner $@
-rm .devloop_inner_shrc.1
-tmux kill-session
-exit
-EOF
-    cat > ./.devloop_inner_shrc.2 << EOF
-# .devloop_inner_shrc.2, created by dev-loop.sh $(date)
-#  You should add this to .gitignore -- '.devloop_inner_shrc*'
-echo ".devloop_inner_shrc.2($@) loading:"
-source ~/.bashrc
-export devloop_window_2=true
-sourceMe=1 source ${scriptName}
-tty>.diagloop-tty
-tmux select-pane -L
-trap 'echo "Ctrl+C inner"' SIGINT
-( inner_diagloop "$@" )
-rm .devloop_inner_shrc.2 .diagloop-cmd .diagloop-tty
-exit
-EOF
+    cat > ./.devloop_inner_shrc.1 <<- EOF
+		# .devloop_inner_shrc.1, created by dev-loop.sh $(date)
+		#  You should add this to .gitignore -- '.devloop_inner_shrc*'
+		echo ".devloop_inner_shrc.1($@) loading:"
+		source ~/.bashrc
+		export devloop_window_1=true
+		tmux split-window -h 'bash --rcfile .devloop_inner_shrc.2'
+		${scriptName} --inner $@
+		rm .devloop_inner_shrc.1
+		tmux kill-session
+		exit
+		EOF
+    cat > ./.devloop_inner_shrc.2 <<- EOF
+		# .devloop_inner_shrc.2, created by dev-loop.sh $(date)
+		#  You should add this to .gitignore -- '.devloop_inner_shrc*'
+		echo ".devloop_inner_shrc.2($@) loading:"
+		source ~/.bashrc
+		export devloop_window_2=true
+		sourceMe=1 source ${scriptName}
+		tty>.diagloop-tty
+		tmux select-pane -L
+		trap 'echo "Ctrl+C inner"' SIGINT
+		( inner_diagloop "$@" )
+		rm .devloop_inner_shrc.2 .diagloop-cmd .diagloop-tty
+		exit
+		EOF
 }
 
 function tmux_outer {
