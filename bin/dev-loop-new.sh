@@ -21,6 +21,7 @@
 #               generate taskrc support template code
 #
 which realpath >/dev/null || { echo "ERROR: realpath not found">&2; exit 1; }
+which tmuxw >/dev/null || { echo "ERROR: tmuxw not found">&2; exit 1; }
 org_args="$@"
 scriptName=dev-loop.sh
 scriptDir=$(dirname $(realpath $0 ))
@@ -199,7 +200,8 @@ function make_inner_shrc {
 }
 
 function tmux_outer {
-    local tmx_sess=devloop$(tty | tr '/' '_')
+    local xdir=$(basename $PWD)
+    local tmx_sess=${xdir}-$(tty | sed 's^/dev/^^' | tr '/' '_')
     stub tmx_sess=$tmx_sess
     make_inner_shrc "$@"
     stub tmux new-session -s $tmx_sess '/bin/bash --rcfile ./.devloop_inner_shrc.1'
