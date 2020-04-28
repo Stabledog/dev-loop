@@ -1,9 +1,50 @@
-scriptname='hello.py'  # TODO: put your script name here
-run_args='--arg1'  # TODO: set your run+debug arguments here
+# vim: filetype=sh :
+templ_version=1  # version of this template
+scriptname='hello.py'   # TODO: put your script name here
+#Help name of the script
+run_args='--arg1'       # TODO: set your run+debug arguments here
+#Help common arguments for run_one() and debug_one()
 
 py=$(which python3.9 python3.8 python3.7 python3.6 | head -n 1 2>/dev/null)
 [[ -x $py ]] || { echo "Cant find appropriate python3 version" >&2 ; false; return;  }
 
-function run_one {
-    $py $scriptname "$@"
+stub_enable=true
+#Help Enable/disable stub printing to fd 9
+stub_count=0
+
+[[ -c $tty9 ]] || tty9=/dev/stderr
+#Help use set_tty9 to change this
+
+function set_tty9 {
+    #Help set the destination of fd 9, used for diag output.
+    if [[ -n $1 ]]; then
+        tty9=$1
+    else
+        tty9=/dev/stderr
+    fi
+    exec 9>${tty9}
 }
+
+function stub {
+    #Help Write a stub message to fd 9
+    $stub_enable || return
+    echo -e "\033[;33mStub:$(( stub_count++ ))[\033[;0m$@\033[;33m]\033[;0m" >${tty9}
+}
+
+function errExit {
+    echo -e "\033[;31mERROR: $@\033[;0m" | tee /dev/stderr >${tty9}
+    exit 1
+}
+
+function run_one {
+    #Help Run the script one time, with run_args + $@
+    [[ -f $scriptname ]] || return $(errExit "Cant find scriptname [$scriptname]")
+    stub "run_one $py $scriptname $run_args $@"
+    $py $scriptname $run_args $@
+}
+
+function debug_one {
+    #Help Debug the script one time, with run_args + $@
+    echo
+}
+

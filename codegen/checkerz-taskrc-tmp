@@ -1,0 +1,58 @@
+# Checkerz Taskrc
+
+
+```bash
+
+python=$(which python3.8 python3.7 python3.6 | head -n 1)
+scr=checkerz_new.py
+#scr=quiklog.py
+
+
+function run_one {
+    #Help run the checkerz app inside dev-loop.sh
+    cd $taskrc_dir
+    (
+        trap exit SIGINT
+        clear
+        local cmd="$python $scr $@"
+        echo "Running: $cmd" >&2
+        local xtty=$(cat .diagloop-tty)
+        if [[ ! -c $xtty ]]; then
+            xtty=/dev/null
+        fi
+        echo xtty=$xtty
+        $cmd 9>$xtty
+    )
+}
+
+function vscode_sh_init {
+    echo "::: Run dl for debugging and testing. :::"
+    alias dl='taskrc_v3;dev-loop'
+}
+
+
+function debug_one {
+    #Help debug the checkerz app inside dev-loop.sh
+    cd $taskrc_dir
+    clear
+    echo "debug() waiting in $PWD for debugger attach on 0.0.0.0:5678..."
+
+    local xtty=$(cat .diagloop-tty)
+    if [[ ! -c $xtty ]]; then
+        xtty=/dev/null
+    fi
+    echo xtty=$xtty
+    $python -m ptvsd --host 0.0.0.0 --port 5678 --wait $scr "$@" 9>${xtty}
+    stty sane
+}
+
+
+
+function go {
+    #Help
+    tkr -r
+    dev-loop "$@"
+}
+
+```
+

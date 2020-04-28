@@ -307,34 +307,12 @@ $(menucolor 32 33 '[D]ebug, [R]un, [E]dit, [S]hell, or [Q]uit?')"
 }
 
 
-function do_codegen {
-    local CodegenHome=$(realpath ${scriptDir}/../codegen)
-    local errMsg
-    if [[ -z $1 ]]; then
-        errMsg="ERROR: Missing module name after '--codegen'"
-    elif [[ ! -x ${CodegenHome}/${1}.sh ]]; then
-        errMsg="ERROR: Not found or not executable: ${CodegenHome}/${1}.sh"
-    fi
-    if [[ -n $errMsg ]]; then
-        echo "${errMsg}" >&2
-        echo "Available modules:"
-        (
-            cd $CodegenHome
-            ls *.sh | sed 's/\.sh$//g'
-            exit 1
-        ) | sed 's/^/    /'
-        return
-    fi
-    local module=$1; shift
-    CodegenHome=${CodegenHome} ${CodegenHome}/${module}.sh "$@"
-}
-
 
 if [[ -z $sourceMe ]]; then
     scriptName=$(realpath $0)
     if [[ $1 == "--codegen" ]]; then
         shift
-        do_codegen "$@"
+        ${scriptDir}/codegen.sh "$@"
     elif [[ $1 == "--inner" ]]; then
         shift
 		if ! (shopt -s extglob; ls taskrc?(.md) &>/dev/null ); then
