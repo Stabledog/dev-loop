@@ -1,13 +1,4 @@
-#!/bin/bash
-#vim: filetype=sh :
-#
-# dev-loop.sh:
-# This runs in two modes: "outer" vs. "inner"
-#
-# The outer instance launches a unique tmux session, and starts an inner instance with 2 new windows
-# in that session.  The inner instance runs a dev loop of (debug/run/shell) in the left pane, and a diag watcher
-#  (e.g. tail_log()) in the right pane.
-#
+#!/usr/bin/env bash #vim: filetype=sh : # # dev-loop.sh: # This runs in two modes: "outer" vs. "inner" # # The outer instance launches a unique tmux session, and starts an inner instance with 2 new windows # in that session.  The inner instance runs a dev loop of (debug/run/shell) in the left pane, and a diag watcher #  (e.g. tail_log()) in the right pane.  #
 # Usage:
 #   dev-loop.sh [args]
 #    - There must be an active ./taskrc{.md}.
@@ -204,8 +195,8 @@ function tmux_outer {
     local tmx_sess=${xdir}-$(tty | sed 's^/dev/^^' | tr '/' '_')
     stub tmx_sess=$tmx_sess
     make_inner_shrc "$@"
-    stub tmux new-session -s $tmx_sess '/bin/bash --rcfile ./.devloop_inner_shrc.1'
-    tmux new-session -s $tmx_sess '/bin/bash --rcfile ./.devloop_inner_shrc.1'
+    stub tmux new-session -s $tmx_sess "$SHELL --rcfile ./.devloop_inner_shrc.2"
+    tmux new-session -s $tmx_sess "$SHELL --rcfile ./.devloop_inner_shrc.1"
     stub $(tmux ls)
     stub tmux result=$?
 }
@@ -315,8 +306,8 @@ if [[ -z $sourceMe ]]; then
         ${scriptDir}/codegen.sh "$@"
     elif [[ $1 == "--inner" ]]; then
         shift
-		if ! (shopt -s extglob; ls taskrc?(.md) &>/dev/null ); then
-			read -p "Error: No .taskrc{.md} present in $PWD. Hit enter to quit."
+	    if ! ls taskrc??? &>/dev/null ; then
+            read -p "Error: No .taskrc{.md} present in $PWD. Hit enter to quit."
 			exit
 		fi
         # AFTER we have defined default run/debug/start_one() functions, we'll give the local
@@ -329,6 +320,7 @@ if [[ -z $sourceMe ]]; then
             echo
             exit
         fi
+        $SHELL --version | grep -q 'version 4' &>/dev/null || errExit "$(basename ${scriptName}) requires bash v4+. Check '$SHELL --version'"
         export DEVLOOP_OUTER=$$
         stub calling tmux_outer
         tmux_outer "$@"

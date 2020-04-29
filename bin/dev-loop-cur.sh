@@ -204,8 +204,8 @@ function tmux_outer {
     local tmx_sess=${xdir}-$(tty | sed 's^/dev/^^' | tr '/' '_')
     stub tmx_sess=$tmx_sess
     make_inner_shrc "$@"
-    stub tmux new-session -s $tmx_sess '/bin/bash --rcfile ./.devloop_inner_shrc.1'
-    tmux new-session -s $tmx_sess '/bin/bash --rcfile ./.devloop_inner_shrc.1'
+    stub tmux new-session -s $tmx_sess "$SHELL --rcfile ./.devloop_inner_shrc.2"
+    tmux new-session -s $tmx_sess "$SHELL --rcfile ./.devloop_inner_shrc.1"
     stub $(tmux ls)
     stub tmux result=$?
 }
@@ -307,38 +307,16 @@ $(menucolor 32 33 '[D]ebug, [R]un, [E]dit, [S]hell, or [Q]uit?')"
 }
 
 
-function do_codegen {
-    local CodegenHome=$(realpath ${scriptDir}/../codegen)
-    local errMsg
-    if [[ -z $1 ]]; then
-        errMsg="ERROR: Missing module name after '--codegen'"
-    elif [[ ! -x ${CodegenHome}/${1}.sh ]]; then
-        errMsg="ERROR: Not found or not executable: ${CodegenHome}/${1}.sh"
-    fi
-    if [[ -n $errMsg ]]; then
-        echo "${errMsg}" >&2
-        echo "Available modules:"
-        (
-            cd $CodegenHome
-            ls *.sh | sed 's/\.sh$//g'
-            exit 1
-        ) | sed 's/^/    /'
-        return
-    fi
-    local module=$1; shift
-    CodegenHome=${CodegenHome} ${CodegenHome}/${module}.sh "$@"
-}
-
 
 if [[ -z $sourceMe ]]; then
     scriptName=$(realpath $0)
     if [[ $1 == "--codegen" ]]; then
         shift
-        do_codegen "$@"
+        ${scriptDir}/codegen.sh "$@"
     elif [[ $1 == "--inner" ]]; then
         shift
-		if ! (shopt -s extglob; ls taskrc?(.md) &>/dev/null ); then
-			read -p "Error: No .taskrc{.md} present in $PWD. Hit enter to quit."
+	    if ! ls taskrc??? &>/dev/null ; then
+            read -p "Error: No .taskrc{.md} present in $PWD. Hit enter to quit."
 			exit
 		fi
         # AFTER we have defined default run/debug/start_one() functions, we'll give the local
@@ -351,6 +329,7 @@ if [[ -z $sourceMe ]]; then
             echo
             exit
         fi
+        $SHELL --version | grep -q 'version 4' &>/dev/null || errExit "$(basename ${scriptName}) requires bash v4+. Check '$SHELL --version'"
         export DEVLOOP_OUTER=$$
         stub calling tmux_outer
         tmux_outer "$@"

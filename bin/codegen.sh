@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # codegen.sh
 
 scriptDir=$(dirname $(realpath $0 ))
