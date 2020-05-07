@@ -78,6 +78,13 @@ function stub {
     true
 }
 
+function has_taskrc {
+    local cnt=$(ls $PWD/taskrc* 2>/dev/null | wc -l)
+    if (( cnt == 0 )); then
+        false
+    fi
+}
+
 function stub_p {
     # stub message with pause:
     $stub_enable || return
@@ -315,7 +322,7 @@ if [[ -z $sourceMe ]]; then
         ${scriptDir}/codegen.sh "$@"
     elif [[ $1 == "--inner" ]]; then
         shift
-	    if ! ls taskrc??? &>/dev/null ; then
+	    if ! has_taskrc $PWD; then
             read -p "Error: No .taskrc{.md} present in $PWD. Hit enter to quit."
 			exit
 		fi
