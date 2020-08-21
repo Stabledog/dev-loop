@@ -336,7 +336,7 @@ if [[ -z $sourceMe ]]; then
             echo
             exit
         fi
-        $SHELL --version | grep -q 'version 4' &>/dev/null || errExit "$(basename ${scriptName}) requires bash v4+. Check '$SHELL --version'"
+        $SHELL --version | grep -q 'version (4|5)' &>/dev/null || errExit "$(basename ${scriptName}) requires bash v4+. Check '$SHELL --version'"
         export DEVLOOP_OUTER=$$
         stub calling tmux_outer
         tmux_outer "$@"
